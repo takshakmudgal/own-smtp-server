@@ -4,6 +4,9 @@ static LOCALHOST: Ipv4Addr = Ipv4Addr::LOCALHOST;
 
 fn main() {
     let port = 25;
-    let result = TcpListener::bind(format!("{LOCALHOST}:{port}")).is_ok();
-    dbg!(result);
+    let listner = TcpListener::bind(format!("{LOCALHOST}:{port}")).unwrap();
+    match listner.accept() {
+        Ok((_socket, addr)) => println!("new client: {addr:?}"),
+        Err(e) => println!("couldn't get client: {e:?}"),
+    }
 }
