@@ -9,7 +9,7 @@ fn main() {
     let port = 3000;
     let listener = TcpListener::bind(format!("{LOCALHOST}:{port}")).unwrap();
     for stream in listener.incoming() {
-        let message = format!("220 {LOCALHOST} SMTP Ready\r\n");
+        let message = format!("220 {LOCALHOST} ESMTP Ready\r\n");
         let _ = stream.unwrap().write(message.as_bytes());
     }
 }
