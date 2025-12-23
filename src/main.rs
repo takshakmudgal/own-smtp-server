@@ -12,7 +12,7 @@ fn type_of<T>(_: T) -> &'static str {
 }
 
 fn handle_client(stream: TcpStream) {
-    println!("Client connected");
+    println!("Client connected {}", stream.peer_addr().unwrap());
 
     let mut writer = BufWriter::new(&stream);
     writer
@@ -24,13 +24,18 @@ fn handle_client(stream: TcpStream) {
     reader.read_line(&mut response).unwrap();
 
     // HELO command
-    if response.trim() == "HELO" {
+    if response.trim().starts_with("HELO") {
         writer.write_all(b"250 OK\r\n").unwrap();
     } else {
         writer.write_all(b"500 NO\r\n").unwrap();
     }
 
     // MAIL FROM
+    if response.trim().starts_with("MAIL FROM") {
+        writer.write_all(b"250 OK\r\n").unwrap();
+    } else {
+        writer.write_all(b"555\r\n").unwrap();
+    }
 
     writer.flush().expect("could not flush");
 }

@@ -1,1 +1,2 @@
 HELO
+MAIL FROM "test@client.net"
