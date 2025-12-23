@@ -23,7 +23,7 @@ fn handle_client(stream: TcpStream) {
     let mut response = String::new();
     reader.read_line(&mut response).unwrap();
 
-    // HELO command
+    // HELO
     if response.trim().starts_with("HELO") {
         writer.write_all(b"250 OK\r\n").unwrap();
     } else {
@@ -31,7 +31,7 @@ fn handle_client(stream: TcpStream) {
     }
 
     // MAIL FROM
-    if response.trim().starts_with("MAIL FROM") {
+    if response.trim().contains("MAIL FROM") {
         writer.write_all(b"250 OK\r\n").unwrap();
     } else {
         writer.write_all(b"555\r\n").unwrap();

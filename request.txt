@@ -1,2 +1,1 @@
-HELO
-MAIL FROM "test@client.net"
+HELO MAIL FROM "test@client.net"
