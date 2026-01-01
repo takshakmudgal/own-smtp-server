@@ -6,7 +6,6 @@ use std::{
 
 static LOCALHOST: Ipv4Addr = Ipv4Addr::LOCALHOST;
 
-// checks type of a variable
 fn type_of<T>(_: T) -> &'static str {
     type_name::<T>()
 }
@@ -18,26 +17,42 @@ fn handle_client(stream: TcpStream) {
     writer
         .write_all(format!("220 {LOCALHOST} ESMTP Ready\r\n").as_bytes())
         .expect("could not write");
+    writer.flush().unwrap();
 
     let mut reader = BufReader::new(&stream);
-    let mut response = String::new();
-    reader.read_line(&mut response).unwrap();
+    let mut command: u32 = 0;
 
-    // HELO
-    if response.trim().starts_with("HELO") {
-        writer.write_all(b"250 OK\r\n").unwrap();
-    } else {
-        writer.write_all(b"500 NO\r\n").unwrap();
+    loop {
+        let mut response = String::new();
+        let n = reader.read_line(&mut response).unwrap();
+        if n == 0 {
+            break;
+        }
+
+        println!("Loop entered {}", command);
+
+        // HELO
+        if command == 0 && response.trim().starts_with("HELO") {
+            writer.write_all(b"250 OK\r\n").unwrap();
+            println!("HELO {}", command);
+            command += 1;
+        } else if command == 0 {
+            writer.write_all(b"500 NO\r\n").unwrap();
+        }
+        println!("MOVED TO {}", command);
+
+        // MAIL FROM
+        if command == 1 && response.trim().contains("MAIL FROM") {
+            writer.write_all(b"250 OK\r\n").unwrap();
+            println!("MAIL_FROM {}", command);
+            command += 1;
+        } else if command == 1 {
+            writer.write_all(b"555\r\n").unwrap();
+        }
+        println!("MOVED TO {}", command);
+
+        writer.flush().unwrap();
     }
-
-    // MAIL FROM
-    if response.trim().contains("MAIL FROM") {
-        writer.write_all(b"250 OK\r\n").unwrap();
-    } else {
-        writer.write_all(b"555\r\n").unwrap();
-    }
-
-    writer.flush().expect("could not flush");
 }
 
 fn main() {
@@ -45,7 +60,6 @@ fn main() {
     let listener = TcpListener::bind(format!("{LOCALHOST}:{port}")).unwrap();
 
     for stream in listener.incoming() {
-        let stream = stream.expect("Unable to accept");
-        handle_client(stream);
+        handle_client(stream.unwrap());
     }
 }
