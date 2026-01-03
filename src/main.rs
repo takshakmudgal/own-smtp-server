@@ -36,22 +36,28 @@ fn handle_client(stream: TcpStream) {
             writer.write_all(b"250 OK\r\n").unwrap();
             println!("HELO {}", command);
             command += 1;
+            writer.flush().unwrap();
+            println!("MOVED TO {}", command);
+            continue;
         } else if command == 0 {
             writer.write_all(b"500 NO\r\n").unwrap();
+            writer.flush().unwrap();
+            continue;
         }
-        println!("MOVED TO {}", command);
 
         // MAIL FROM
         if command == 1 && response.trim().contains("MAIL FROM") {
             writer.write_all(b"250 OK\r\n").unwrap();
             println!("MAIL_FROM {}", command);
             command += 1;
+            writer.flush().unwrap();
+            println!("MOVED TO {}", command);
+            continue;
         } else if command == 1 {
             writer.write_all(b"555\r\n").unwrap();
+            writer.flush().unwrap();
+            continue;
         }
-        println!("MOVED TO {}", command);
-
-        writer.flush().unwrap();
     }
 }
 
