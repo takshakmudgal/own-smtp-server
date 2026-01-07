@@ -58,6 +58,19 @@ fn handle_client(stream: TcpStream) {
             writer.flush().unwrap();
             continue;
         }
+
+        // DATA
+        if command == 2 && response.trim().contains("DATA") {
+            writer.write_all(b"354 GRANTED\r\n").unwrap();
+            println!("DATA {}", command);
+            command += 1;
+            writer.flush().unwrap();
+            continue;
+        } else if command == 2 {
+            writer.write_all(b"500 NO\r\n").unwrap();
+            writer.flush().unwrap();
+            continue;
+        }
     }
 }
 
