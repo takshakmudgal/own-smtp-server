@@ -106,63 +106,15 @@ fn handle_client(stream: TcpStream) {
             continue;
         }
 
-        if command == 4 && response.trim().starts_with("Date:") {
-            command += 1;
-            println!("MOVED TO {}", command);
-            continue;
-        } else if command == 4 {
-            writer.write_all(b"Wrong Date Format\r\n").unwrap();
-            writer.flush().unwrap();
-            continue;
-        }
-
-        if command == 5 && response.trim().starts_with("From:") {
-            command += 1;
-            println!("MOVED TO {}", command);
-            continue;
-        } else if command == 5 {
-            writer.write_all(b"Wrong From Format\r\n").unwrap();
-            writer.flush().unwrap();
-            continue;
-        }
-
-        if command == 6 && response.trim().starts_with("Subject:") {
-            command += 1;
-            println!("MOVED TO {}", command);
-            continue;
-        } else if command == 6 {
-            writer.write_all(b"Wrong Subject Format\r\n").unwrap();
-            writer.flush().unwrap();
-            continue;
-        }
-
-        if command == 7 && response.trim().starts_with("To:") {
-            command += 1;
-            println!("MOVED TO {}", command);
-            continue;
-        } else if command == 7 {
-            writer.write_all(b"Wrong To Format\r\n").unwrap();
-            writer.flush().unwrap();
-            continue;
-        }
-
-        if command == 8 {
-            command += 1;
-            println!("MOVED TO {}", command);
-            continue;
-        } else if command == 8 {
-            writer.write_all(b"Wrong MESSAGE Format\r\n").unwrap();
-            writer.flush().unwrap();
-            continue;
-        }
-
-        if command == 9 && response.trim().eq(".") {
-            command += 1;
-            println!("MOVED TO {}", command);
-            break;
-        } else if command == 9 {
-            writer.write_all(b"Wrong DATA Format\r\n").unwrap();
-            writer.flush().unwrap();
+        if command == 4 {
+            if response.trim().eq(".") {
+                writer.write_all(b"250 OK Message accepted\r\n").unwrap();
+                writer.flush().unwrap();
+                println!("Message received");
+                command = 0;
+                continue;
+            }
+            println!("Data: {}", response.trim());
             continue;
         }
     }
