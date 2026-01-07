@@ -1,6 +1,6 @@
 use std::{
     any::type_name,
-    io::{BufRead, BufReader, BufWriter, Write},
+    io::{BufRead, BufReader, BufWriter, Read, Write},
     net::{Ipv4Addr, TcpListener, TcpStream},
 };
 
@@ -31,6 +31,25 @@ fn handle_client(stream: TcpStream) {
 
         println!("Loop entered {}", command);
 
+        if response.trim().contains("NOOP") {
+            writer.write_all(b"250 OK\r\n").unwrap();
+            writer.flush().unwrap();
+            continue;
+        }
+
+        if response.trim().contains("RSET") {
+            writer.write_all(b"250 OK\r\n").unwrap();
+            writer.flush().unwrap();
+            command = 0;
+            continue;
+        }
+
+        if response.trim().contains("QUIT") {
+            writer.write_all(b"221 OK\r\n").unwrap();
+            writer.flush().unwrap();
+            break;
+        }
+
         // HELO
         if command == 0 && response.trim().starts_with("HELO") {
             writer.write_all(b"250 OK\r\n").unwrap();
@@ -59,15 +78,90 @@ fn handle_client(stream: TcpStream) {
             continue;
         }
 
+        // RCPT TO
+        if command == 2 && response.trim().contains("RCPT TO") {
+            writer.write_all(b"250 OK\r\n").unwrap();
+            println!("RCPT TO {}", command);
+            command += 1;
+            writer.flush().unwrap();
+            println!("MOVED TO {}", command);
+            continue;
+        } else if command == 2 {
+            writer.write_all(b"555\r\n").unwrap();
+            writer.flush().unwrap();
+            continue;
+        }
+
         // DATA
-        if command == 2 && response.trim().contains("DATA") {
+        if command == 3 && response.trim().contains("DATA") {
             writer.write_all(b"354 GRANTED\r\n").unwrap();
             println!("DATA {}", command);
             command += 1;
             writer.flush().unwrap();
+            println!("MOVED TO {}", command);
             continue;
-        } else if command == 2 {
+        } else if command == 3 {
             writer.write_all(b"500 NO\r\n").unwrap();
+            writer.flush().unwrap();
+            continue;
+        }
+
+        if command == 4 && response.trim().starts_with("Date") {
+            command += 1;
+            println!("MOVED TO {}", command);
+            continue;
+        } else if command == 4 {
+            writer.write_all(b"Wrong Date Format\r\n").unwrap();
+            writer.flush().unwrap();
+            continue;
+        }
+
+        if command == 5 && response.trim().contains("From") {
+            command += 1;
+            println!("MOVED TO {}", command);
+            continue;
+        } else if command == 5 {
+            writer.write_all(b"Wrong From Format\r\n").unwrap();
+            writer.flush().unwrap();
+            continue;
+        }
+
+        if command == 6 && response.trim().contains("Subject") {
+            command += 1;
+            println!("MOVED TO {}", command);
+            continue;
+        } else if command == 6 {
+            writer.write_all(b"Wrong Subject Format\r\n").unwrap();
+            writer.flush().unwrap();
+            continue;
+        }
+
+        if command == 7 && response.trim().contains("To") {
+            command += 1;
+            println!("MOVED TO {}", command);
+            continue;
+        } else if command == 7 {
+            writer.write_all(b"Wrong To Format\r\n").unwrap();
+            writer.flush().unwrap();
+            continue;
+        }
+
+        if command == 8 {
+            command += 1;
+            println!("MOVED TO {}", command);
+            continue;
+        } else if command == 8 {
+            writer.write_all(b"Wrong MESSAGE Format\r\n").unwrap();
+            writer.flush().unwrap();
+            continue;
+        }
+
+        if command == 9 && response.trim().contains(".") {
+            command += 1;
+            println!("MOVED TO {}", command);
+            break;
+        } else if command == 9 {
+            writer.write_all(b"Wrong DATA Format\r\n").unwrap();
             writer.flush().unwrap();
             continue;
         }
