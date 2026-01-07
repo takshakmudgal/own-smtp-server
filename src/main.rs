@@ -31,20 +31,20 @@ fn handle_client(stream: TcpStream) {
 
         println!("Loop entered {}", command);
 
-        if response.trim().contains("NOOP") {
+        if response.trim().starts_with("NOOP") {
             writer.write_all(b"250 OK\r\n").unwrap();
             writer.flush().unwrap();
             continue;
         }
 
-        if response.trim().contains("RSET") {
+        if response.trim().starts_with("RSET") {
             writer.write_all(b"250 OK\r\n").unwrap();
             writer.flush().unwrap();
             command = 0;
             continue;
         }
 
-        if response.trim().contains("QUIT") {
+        if response.trim().starts_with("QUIT") {
             writer.write_all(b"221 OK\r\n").unwrap();
             writer.flush().unwrap();
             break;
@@ -65,7 +65,7 @@ fn handle_client(stream: TcpStream) {
         }
 
         // MAIL FROM
-        if command == 1 && response.trim().contains("MAIL FROM") {
+        if command == 1 && response.trim().starts_with("MAIL FROM") {
             writer.write_all(b"250 OK\r\n").unwrap();
             println!("MAIL_FROM {}", command);
             command += 1;
@@ -79,7 +79,7 @@ fn handle_client(stream: TcpStream) {
         }
 
         // RCPT TO
-        if command == 2 && response.trim().contains("RCPT TO") {
+        if command == 2 && response.trim().starts_with("RCPT TO") {
             writer.write_all(b"250 OK\r\n").unwrap();
             println!("RCPT TO {}", command);
             command += 1;
@@ -93,7 +93,7 @@ fn handle_client(stream: TcpStream) {
         }
 
         // DATA
-        if command == 3 && response.trim().contains("DATA") {
+        if command == 3 && response.trim().eq("DATA") {
             writer.write_all(b"354 GRANTED\r\n").unwrap();
             println!("DATA {}", command);
             command += 1;
@@ -106,7 +106,7 @@ fn handle_client(stream: TcpStream) {
             continue;
         }
 
-        if command == 4 && response.trim().starts_with("Date") {
+        if command == 4 && response.trim().starts_with("Date:") {
             command += 1;
             println!("MOVED TO {}", command);
             continue;
@@ -116,7 +116,7 @@ fn handle_client(stream: TcpStream) {
             continue;
         }
 
-        if command == 5 && response.trim().contains("From") {
+        if command == 5 && response.trim().starts_with("From:") {
             command += 1;
             println!("MOVED TO {}", command);
             continue;
@@ -126,7 +126,7 @@ fn handle_client(stream: TcpStream) {
             continue;
         }
 
-        if command == 6 && response.trim().contains("Subject") {
+        if command == 6 && response.trim().starts_with("Subject:") {
             command += 1;
             println!("MOVED TO {}", command);
             continue;
@@ -136,7 +136,7 @@ fn handle_client(stream: TcpStream) {
             continue;
         }
 
-        if command == 7 && response.trim().contains("To") {
+        if command == 7 && response.trim().starts_with("To:") {
             command += 1;
             println!("MOVED TO {}", command);
             continue;
@@ -156,7 +156,7 @@ fn handle_client(stream: TcpStream) {
             continue;
         }
 
-        if command == 9 && response.trim().contains(".") {
+        if command == 9 && response.trim().eq(".") {
             command += 1;
             println!("MOVED TO {}", command);
             break;
