@@ -1,2 +1,11 @@
-HELO
-MAIL FROM takshakmudgal@gmail.com
+HELO localhost
+MAIL FROM:<takshakmudgal@gmail.com>
+RCPT TO:<someone@example.com>
+DATA
+Subject: Test mail
+From: takshakmudgal@gmail.com
+To: someone@example.com
+
+Hello world
+.
+QUIT

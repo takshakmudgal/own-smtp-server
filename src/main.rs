@@ -1,6 +1,6 @@
 use std::{
     any::type_name,
-    io::{BufRead, BufReader, BufWriter, Read, Write},
+    io::{BufRead, BufReader, BufWriter, Write},
     net::{Ipv4Addr, TcpListener, TcpStream},
 };
 
@@ -11,12 +11,12 @@ fn type_of<T>(_: T) -> &'static str {
 }
 
 fn handle_client(stream: TcpStream) {
-    println!("Client connected {}", stream.peer_addr().unwrap());
+    println!("client connected {}", stream.peer_addr().unwrap());
 
     let mut writer = BufWriter::new(&stream);
     writer
         .write_all(format!("220 {LOCALHOST} ESMTP Ready\r\n").as_bytes())
-        .expect("could not write");
+        .unwrap();
     writer.flush().unwrap();
 
     let mut reader = BufReader::new(&stream);
@@ -26,95 +26,95 @@ fn handle_client(stream: TcpStream) {
         let mut response = String::new();
         let n = reader.read_line(&mut response).unwrap();
         if n == 0 {
+            println!("client disconnected");
             break;
         }
 
-        println!("Loop entered {}", command);
+        let line = response.trim();
+        println!("state={} recv='{}'", command, line);
 
-        if response.trim().starts_with("NOOP") {
+        if line.starts_with("NOOP") {
             writer.write_all(b"250 OK\r\n").unwrap();
             writer.flush().unwrap();
             continue;
         }
 
-        if response.trim().starts_with("RSET") {
-            writer.write_all(b"250 OK\r\n").unwrap();
-            writer.flush().unwrap();
+        if line.starts_with("RSET") {
             command = 0;
+            writer.write_all(b"250 OK\r\n").unwrap();
+            writer.flush().unwrap();
+            println!("state reset");
             continue;
         }
 
-        if response.trim().starts_with("QUIT") {
+        if line.starts_with("QUIT") {
             writer.write_all(b"221 OK\r\n").unwrap();
             writer.flush().unwrap();
+            println!("session closed");
             break;
         }
 
-        // HELO
-        if command == 0 && response.trim().starts_with("HELO") {
-            writer.write_all(b"250 OK\r\n").unwrap();
-            println!("HELO {}", command);
-            command += 1;
-            writer.flush().unwrap();
-            println!("MOVED TO {}", command);
-            continue;
-        } else if command == 0 {
-            writer.write_all(b"500 NO\r\n").unwrap();
-            writer.flush().unwrap();
-            continue;
-        }
-
-        // MAIL FROM
-        if command == 1 && response.trim().starts_with("MAIL FROM") {
-            writer.write_all(b"250 OK\r\n").unwrap();
-            println!("MAIL_FROM {}", command);
-            command += 1;
-            writer.flush().unwrap();
-            println!("MOVED TO {}", command);
-            continue;
-        } else if command == 1 {
-            writer.write_all(b"555\r\n").unwrap();
-            writer.flush().unwrap();
+        if command == 0 {
+            if line.starts_with("HELO") {
+                writer.write_all(b"250 OK\r\n").unwrap();
+                writer.flush().unwrap();
+                command = 1;
+                println!("transition HELO -> MAIL");
+            } else {
+                writer.write_all(b"500 Expected HELO\r\n").unwrap();
+                writer.flush().unwrap();
+            }
             continue;
         }
 
-        // RCPT TO
-        if command == 2 && response.trim().starts_with("RCPT TO") {
-            writer.write_all(b"250 OK\r\n").unwrap();
-            println!("RCPT TO {}", command);
-            command += 1;
-            writer.flush().unwrap();
-            println!("MOVED TO {}", command);
-            continue;
-        } else if command == 2 {
-            writer.write_all(b"555\r\n").unwrap();
-            writer.flush().unwrap();
+        if command == 1 {
+            if line.starts_with("MAIL FROM") {
+                writer.write_all(b"250 OK\r\n").unwrap();
+                writer.flush().unwrap();
+                command = 2;
+                println!("transition MAIL -> RCPT");
+            } else {
+                writer.write_all(b"503 Expected MAIL FROM\r\n").unwrap();
+                writer.flush().unwrap();
+            }
             continue;
         }
 
-        // DATA
-        if command == 3 && response.trim().eq("DATA") {
-            writer.write_all(b"354 GRANTED\r\n").unwrap();
-            println!("DATA {}", command);
-            command += 1;
-            writer.flush().unwrap();
-            println!("MOVED TO {}", command);
+        if command == 2 {
+            if line.starts_with("RCPT TO") {
+                writer.write_all(b"250 OK\r\n").unwrap();
+                writer.flush().unwrap();
+                command = 3;
+                println!("transition RCPT -> DATA");
+            } else {
+                writer.write_all(b"503 Expected RCPT TO\r\n").unwrap();
+                writer.flush().unwrap();
+            }
             continue;
-        } else if command == 3 {
-            writer.write_all(b"500 NO\r\n").unwrap();
-            writer.flush().unwrap();
+        }
+
+        if command == 3 {
+            if line == "DATA" {
+                writer.write_all(b"354 End with <CRLF>.<CRLF>\r\n").unwrap();
+                writer.flush().unwrap();
+                command = 4;
+                println!("enter DATA mode");
+            } else {
+                writer.write_all(b"503 Expected DATA\r\n").unwrap();
+                writer.flush().unwrap();
+            }
             continue;
         }
 
         if command == 4 {
-            if response.trim().eq(".") {
+            if line == "." {
                 writer.write_all(b"250 OK Message accepted\r\n").unwrap();
                 writer.flush().unwrap();
-                println!("Message received");
+                println!("message complete");
                 command = 0;
-                continue;
+            } else {
+                println!("data: {}", line);
             }
-            println!("Data: {}", response.trim());
             continue;
         }
     }
